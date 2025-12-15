@@ -119,9 +119,6 @@ export default function ElyzeFinance() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 gold-gradient rounded-lg flex items-center justify-center transform rotate-45">
-                <Lock className="w-6 h-6 text-black transform -rotate-45" />
-              </div>
               <div>
                 <div className="text-2xl font-extrabold tracking-tight gold-text">ELYZE</div>
                 <div className="text-xs text-gray-400 font-medium">FINANCE</div>
@@ -482,9 +479,6 @@ export default function ElyzeFinance() {
           <div className="grid md:grid-cols-2 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 gold-gradient rounded-lg flex items-center justify-center transform rotate-45">
-                  <Lock className="w-6 h-6 text-black transform -rotate-45" />
-                </div>
                 <div>
                   <div className="text-2xl font-extrabold gold-text">ELYZE</div>
                   <div className="text-xs text-gray-400 font-medium">FINANCE</div>
