@@ -13,7 +13,7 @@ export default function ElyzeFinance() {
   }, []);
 
   useEffect(() => {
-    const targetDate = new Date('2026-01-14T14:00:00Z').getTime();
+    const targetDate = new Date('2026-01-28T14:00:00Z').getTime();
     
     const updateCountdown = () => {
       const now = new Date().getTime();
@@ -205,7 +205,7 @@ export default function ElyzeFinance() {
               ))}
             </div>
             <div className="text-sm text-gray-400">
-              Mint Goes Live • <span className="text-yellow-500 font-semibold">14 JAN. 2026 • 2PM UTC</span>
+              Mint Goes Live • <span className="text-yellow-500 font-semibold">28 JAN. 2026 • 2PM UTC</span>
             </div>
           </div>
 
@@ -276,7 +276,7 @@ export default function ElyzeFinance() {
                   { label: 'Network', value: 'Ethereum' },
                   { label: 'WL Mint Price', value: '0.0066Ξ' },
                   { label: 'Public Mint Price', value: '0.0088Ξ' },
-                  { label: 'Mint Date', value: '14 JAN. 2026 • 2 PM UTC' },
+                  { label: 'Mint Date', value: '28 JAN. 2026 • 2 PM UTC' },
                   { label: 'Transferable', value: 'Yes' },
                   { label: 'Utility Activation', value: 'On platform launch' }
                 ].map((item, i) => (
