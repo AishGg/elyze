@@ -1,5 +1,34 @@
 import { useState, useEffect, useRef } from "react";
 
+// ── Supabase REST helpers ─────────────────────────────────────────────────────
+const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const sbH = {
+  "apikey": SB_KEY,
+  "Authorization": `Bearer ${SB_KEY}`,
+  "Content-Type": "application/json",
+};
+
+async function sbInsert(data) {
+  const res = await fetch(`${SB_URL}/rest/v1/whitelist`, {
+    method: "POST",
+    headers: { ...sbH, "Prefer": "return=minimal" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw { status: res.status, ...err };
+  }
+}
+
+async function sbFetch() {
+  const res = await fetch(`${SB_URL}/rest/v1/whitelist?select=*&order=submitted_at.desc`, {
+    headers: sbH,
+  });
+  if (!res.ok) throw new Error("Fetch failed");
+  return res.json();
+}
+
 // ── Fonts via @import in style tag ──────────────────────────────────────────
 const GLOBAL_STYLE = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@300;400&display=swap');
@@ -236,6 +265,57 @@ const GLOBAL_STYLE = `
     background-repeat: repeat;
     background-size: 128px;
   }
+
+  /* ── Responsive ──────────────────────────────────────────────────────────── */
+  .desktop-nav { display: flex; }
+
+  .mobile-menu-btn {
+    display: none;
+    background: none; border: none;
+    color: var(--gold); font-size: 1.6rem;
+    cursor: pointer; padding: .25rem; line-height: 1; align-items: center;
+  }
+  .mobile-drawer {
+    display: none;
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(6,8,15,.97);
+    backdrop-filter: blur(24px);
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 2.2rem; padding: 2rem;
+  }
+  .mobile-drawer.open { display: flex; }
+  .mobile-drawer .nav-link { font-size: 1.1rem; letter-spacing: .16em; }
+
+  @media (max-width: 900px) {
+    .desktop-nav    { display: none !important; }
+    .mobile-menu-btn { display: flex !important; }
+
+    /* grids → single column */
+    .genesis-grid  { grid-template-columns: 1fr !important; }
+    .footer-grid   { grid-template-columns: 1fr !important; gap: 2rem !important; }
+    .mint-3grid    { grid-template-columns: 1fr 1fr !important; }
+    .admin-3grid   { grid-template-columns: 1fr 1fr !important; }
+    .access-radios { flex-direction: column !important; }
+
+    /* nav padding */
+    nav { padding: .9rem 1.2rem !important; }
+
+    /* hero */
+    .hero-section { padding-top: 7rem !important; padding-bottom: 3rem !important; }
+    .hero-btns    { flex-direction: column !important; align-items: center !important; }
+    .hero-btns > * { width: 100%; max-width: 300px; justify-content: center !important; text-align: center; }
+
+    /* roadmap */
+    .roadmap-card { flex-direction: column !important; align-items: flex-start !important; gap: .6rem !important; }
+  }
+
+  @media (max-width: 480px) {
+    .mint-3grid  { grid-template-columns: 1fr !important; }
+    .admin-3grid { grid-template-columns: 1fr !important; }
+    .pass-grid   { grid-template-columns: repeat(2,1fr) !important; }
+    .cd-wrap     { gap: .4rem !important; }
+    .cd-wrap .cd-num { font-size: 2rem !important; }
+  }
 `;
 
 // ── Data ─────────────────────────────────────────────────────────────────────
@@ -364,39 +444,64 @@ function Nav({ onWaitlist }) {
     return () => window.removeEventListener("scroll", h);
   }, []);
 
-  return (
-    <nav style={{
-      position:"fixed", top:0, left:0, right:0, zIndex:100,
-      padding:"1.1rem 2.5rem",
-      display:"flex", alignItems:"center", justifyContent:"space-between",
-      background: scrolled ? "rgba(6,8,15,.82)" : "transparent",
-      backdropFilter: scrolled ? "blur(18px)" : "none",
-      borderBottom: scrolled ? "1px solid var(--border)" : "none",
-      transition:"all .4s ease",
-    }}>
-      {/* logo */}
-      <div style={{ display:"flex", alignItems:"center", gap:".65rem" }}>
-        <span style={{ fontSize:"1.3rem", color:"var(--gold)" }}>❋</span>
-        <div>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"1.15rem", letterSpacing:".18em", color:"var(--gold-lt)" }}>ELYZE</div>
-          <div style={{ fontSize:".6rem", letterSpacing:".25em", color:"var(--text-dim)", textTransform:"uppercase", marginTop:"-2px" }}>Finance</div>
-        </div>
-      </div>
+  const links = ["About","Genesis","Ecosystem","Roadmap","Whitelist"];
+  const close = () => setOpen(false);
 
-      {/* desktop links */}
-      <div style={{ display:"flex", gap:"2.5rem", alignItems:"center" }} className="desktop-nav">
-        {["About","Genesis","Ecosystem","Roadmap"].map(l => (
-          <a key={l} href={`#${l.toLowerCase()}`} className="nav-link">{l}</a>
+  return (
+    <>
+      <nav style={{
+        position:"fixed", top:0, left:0, right:0, zIndex:100,
+        padding:"1.1rem 2.5rem",
+        display:"flex", alignItems:"center", justifyContent:"space-between",
+        background: scrolled ? "rgba(6,8,15,.88)" : "transparent",
+        backdropFilter: scrolled ? "blur(18px)" : "none",
+        borderBottom: scrolled ? "1px solid var(--border)" : "none",
+        transition:"all .4s ease",
+      }}>
+        {/* logo */}
+        <div style={{ display:"flex", alignItems:"center", gap:".65rem" }}>
+          <span style={{ fontSize:"1.3rem", color:"var(--gold)" }}>❋</span>
+          <div>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"1.15rem", letterSpacing:".18em", color:"var(--gold-lt)" }}>ELYZE</div>
+            <div style={{ fontSize:".6rem", letterSpacing:".25em", color:"var(--text-dim)", textTransform:"uppercase", marginTop:"-2px" }}>Finance</div>
+          </div>
+        </div>
+
+        {/* desktop links */}
+        <div className="desktop-nav" style={{ gap:"2.5rem", alignItems:"center" }}>
+          {links.map(l => (
+            <a key={l} href={`#${l.toLowerCase()}`} className="nav-link">{l}</a>
+          ))}
+          <button className="btn-gold" onClick={onWaitlist} style={{ padding:".55rem 1.3rem", borderRadius:6 }}>
+            Apply Now
+          </button>
+        </div>
+
+        {/* hamburger */}
+        <button className="mobile-menu-btn" onClick={() => setOpen(o => !o)} aria-label="Menu">
+          {open ? "✕" : "☰"}
+        </button>
+      </nav>
+
+      {/* mobile drawer */}
+      <div className={`mobile-drawer${open ? " open" : ""}`}>
+        <button onClick={close} style={{
+          position:"absolute", top:"1.4rem", right:"1.4rem",
+          background:"none", border:"none", color:"var(--gold)",
+          fontSize:"1.5rem", cursor:"pointer", lineHeight:1,
+        }}>✕</button>
+        {/* logo in drawer */}
+        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"1.3rem", letterSpacing:".2em", color:"var(--gold-lt)", marginBottom:"1rem" }}>ELYZE FINANCE</div>
+        {links.map(l => (
+          <a key={l} href={`#${l.toLowerCase()}`} className="nav-link" onClick={close}
+            style={{ fontSize:"1.1rem", letterSpacing:".16em" }}>{l}</a>
         ))}
-        <button
-          className="btn-gold"
-          onClick={onWaitlist}
-          style={{ padding:".55rem 1.3rem", borderRadius:6 }}
-        >
+        <button className="btn-gold" onClick={() => { close(); onWaitlist(); }}
+          style={{ padding:".85rem 2.5rem", borderRadius:8, marginTop:"1rem" }}>
           Apply Now
         </button>
       </div>
-    </nav>
+    </>
   );
 }
 
@@ -435,7 +540,7 @@ function Hero({ onWaitlist }) {
   }, []);
 
   return (
-    <section id="hero" style={{
+    <section id="hero" className="hero-section" style={{
       minHeight:"100vh",
       display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
       padding:"9rem 2rem 5rem",
@@ -537,7 +642,7 @@ function Hero({ onWaitlist }) {
       <div style={{ marginBottom:"1rem", fontSize:".7rem", letterSpacing:".18em", textTransform:"uppercase", color:"var(--text-dim)" }}>
         Mint Opens · 3 June 2026 · 2PM UTC
       </div>
-      <div style={{ display:"flex", gap:".75rem", marginBottom:"3rem" }}>
+      <div className="cd-wrap" style={{ display:"flex", gap:".75rem", marginBottom:"3rem" }}>
         <CountdownBlock label="Days"    value={cd.d} />
         <CountdownBlock label="Hours"   value={cd.h} />
         <CountdownBlock label="Minutes" value={cd.m} />
@@ -545,7 +650,7 @@ function Hero({ onWaitlist }) {
       </div>
 
       {/* CTA */}
-      <div style={{ display:"flex", gap:"1rem", flexWrap:"wrap", justifyContent:"center" }}>
+      <div className="hero-btns" style={{ display:"flex", gap:"1rem", flexWrap:"wrap", justifyContent:"center" }}>
         <button className="btn-gold" onClick={onWaitlist} style={{ padding:".85rem 2.2rem", borderRadius:8, fontSize:".82rem" }}>
           ❋ Apply for Access
         </button>
@@ -684,7 +789,7 @@ function GenesisPass() {
           <p style={{ color:"var(--text-dim)", fontSize:".9rem" }}>555 passes. One ecosystem. Permanent access.</p>
         </div>
 
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"2rem", alignItems:"start" }}>
+        <div className="genesis-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"2rem", alignItems:"start" }}>
           {/* details */}
           <div className="glass" style={{ borderRadius:16, overflow:"hidden" }}>
             {details.map(([k,v],i) => (
@@ -795,7 +900,7 @@ function Ecosystem() {
           <div className="divider" />
           <p style={{ color:"var(--text-dim)", fontSize:".9rem" }}>Rarity determined at reveal. Utilities unlock post-reveal.</p>
         </div>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))", gap:"1.1rem" }}>
+        <div className="pass-grid" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))", gap:"1.1rem" }}>
           {PASSES.map((p,i) => <PassCard key={i} pass={p} />)}
         </div>
       </div>
@@ -859,7 +964,7 @@ function Roadmap() {
           {PHASES.map((p,i) => (
             <div key={i} style={{ display:"flex", gap:"1.6rem", marginBottom: i < PHASES.length-1 ? "2.8rem":"0", alignItems:"flex-start" }}>
               <div className={`phase-dot ${p.done?"done":""}`} style={{ marginTop:4 }} />
-              <div className="glass" style={{ flex:1, borderRadius:12, padding:"1.4rem 1.6rem", display:"flex", justifyContent:"space-between", alignItems:"center", gap:"1rem" }}>
+              <div className="glass roadmap-card" style={{ flex:1, borderRadius:12, padding:"1.4rem 1.6rem", display:"flex", justifyContent:"space-between", alignItems:"center", gap:"1rem" }}>
                 <div>
                   <div style={{ fontSize:".68rem", letterSpacing:".18em", textTransform:"uppercase", color:"var(--gold)", marginBottom:".3rem" }}>
                     Phase {p.n}
@@ -933,7 +1038,7 @@ function MintPhase() {
         <p style={{ color:"var(--text-dim)", fontSize:".88rem", marginBottom:"2.5rem", lineHeight:1.75 }}>
           Early aligned participants receive structured access before public expansion.
         </p>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"1rem" }}>
+        <div className="mint-3grid" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"1rem" }}>
           {[
             { n:"1", label:"Priority Whitelist", tag:"Guaranteed", color:"var(--gold)" },
             { n:"2", label:"General Access",     tag:"FCFS",       color:"#6aadff" },
@@ -981,16 +1086,29 @@ function Community() {
   );
 }
 
+// Generates a randomised arithmetic challenge the bot can't trivially read
+// because the operator and operands are chosen at runtime and the label is
+// built as a string — not individual variables in the DOM.
+function makeCaptcha() {
+  const ops = ["+", "-", "×"];
+  const op  = ops[Math.floor(Math.random() * ops.length)];
+  const a   = Math.floor(Math.random() * 20) + 5;   // 5–24
+  const b   = op === "-"
+    ? Math.floor(Math.random() * a) + 1              // b < a so answer ≥ 1
+    : Math.floor(Math.random() * 10) + 2;            // 2–11
+  const answer = op === "+" ? a + b : op === "-" ? a - b : a * b;
+  return { label:`${a} ${op} ${b}`, answer };
+}
+
 function WhitelistForm() {
-  const [cap] = useState(() => {
-    const a = Math.floor(Math.random() * 9) + 1;
-    const b = Math.floor(Math.random() * 9) + 1;
-    return { a, b };
-  });
-  const [form, setForm] = useState({ wallet:"", xHandle:"", accessType:"priority", _hp:"" });
-  const [capInput, setCapInput] = useState("");
-  const [errors, setErrors] = useState({});
+  const [cap]      = useState(makeCaptcha);
+  const [mountTs]  = useState(() => Date.now());
+  const [touched,   setTouched]   = useState(false);
+  const [form,      setForm]      = useState({ wallet:"", xHandle:"", _hp:"", email:"" });
+  const [capInput,  setCapInput]  = useState("");
+  const [errors,    setErrors]    = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [submitting,setSubmitting]= useState(false);
 
   const tasks = [
     { label:"Follow Elyze Finance on X",                href:"https://x.com/Elyzeoneth",     optional:false },
@@ -998,25 +1116,55 @@ function WhitelistForm() {
     { label:"Join Telegram",                            href:"https://t.me/elyzefinance",     optional:true  },
   ];
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (form._hp) return;
+
+    // ── Bot signals — silent drop ──────────────────────────────────────────
+    if (form._hp || form.email) return;
+    if (!touched) return;
+    if (Date.now() - mountTs < 4000) return;
+
+    // ── Rate limit: 1 attempt per hour per browser ─────────────────────────
+    const lastSubmit = parseInt(localStorage.getItem("elyze_wl_last") || "0", 10);
+    if (Date.now() - lastSubmit < 3600_000) {
+      setErrors({ captcha:"Too many attempts. Please try again later." });
+      return;
+    }
+
+    // ── Client-side validation ─────────────────────────────────────────────
     const errs = {};
     if (!/^0x[a-fA-F0-9]{40}$/.test(form.wallet.trim()))
       errs.wallet = "Enter a valid ERC-20 Ethereum address (0x…)";
     if (!/^@[a-zA-Z0-9_]{1,15}$/.test(form.xHandle.trim()))
       errs.xHandle = "Enter your X handle (e.g. @username)";
-    if (parseInt(capInput) !== cap.a + cap.b)
+    if (parseInt(capInput, 10) !== cap.answer)
       errs.captcha = "Incorrect answer";
-    const stored = JSON.parse(localStorage.getItem("elyze_wl_v1") || "[]");
-    if (!errs.wallet && stored.some(r => r.wallet.toLowerCase() === form.wallet.trim().toLowerCase()))
-      errs.wallet = "Wallet already registered";
-    if (!errs.xHandle && stored.some(r => r.xHandle.toLowerCase() === form.xHandle.trim().toLowerCase()))
-      errs.xHandle = "X handle already registered";
     if (Object.keys(errs).length) { setErrors(errs); return; }
-    stored.push({ wallet:form.wallet.trim(), xHandle:form.xHandle.trim(), accessType:form.accessType, ts:Date.now() });
-    localStorage.setItem("elyze_wl_v1", JSON.stringify(stored));
-    setSubmitted(true);
+
+    // ── Submit to Supabase ─────────────────────────────────────────────────
+    setSubmitting(true);
+    try {
+      await sbInsert({
+        wallet:   form.wallet.trim(),
+        x_handle: form.xHandle.trim(),
+      });
+      localStorage.setItem("elyze_wl_last", String(Date.now()));
+      setSubmitted(true);
+    } catch (err) {
+      if (err.status === 409 || err.code === "23505") {
+        const msg = (err.message || err.details || "").toLowerCase();
+        if (msg.includes("wallet"))
+          setErrors({ wallet: "This wallet is already registered." });
+        else if (msg.includes("x_handle"))
+          setErrors({ xHandle: "This X handle is already registered." });
+        else
+          setErrors({ captcha: "This entry already exists in our system." });
+      } else {
+        setErrors({ captcha: "Submission failed. Please check your connection and try again." });
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (submitted) return (
@@ -1086,10 +1234,17 @@ function WhitelistForm() {
         {/* form */}
         <div className="glass" style={{ borderRadius:16, padding:"2.5rem", border:"1px solid var(--border-lt)" }}>
           <form onSubmit={handleSubmit} style={{ display:"flex", flexDirection:"column", gap:"1.4rem" }}>
-            {/* honeypot — hidden from real users, bots fill it */}
+            {/* honeypot 1 — positionally hidden */}
             <input
               type="text" name="_hp" tabIndex={-1} aria-hidden="true"
               value={form._hp} onChange={e => setForm(v => ({...v, _hp:e.target.value}))}
+              style={{ position:"absolute", left:-9999, width:1, height:1, opacity:0 }}
+              autoComplete="off"
+            />
+            {/* honeypot 2 — realistic field name that bots love to fill */}
+            <input
+              type="email" name="email" tabIndex={-1} aria-hidden="true"
+              value={form.email} onChange={e => setForm(v => ({...v, email:e.target.value}))}
               style={{ position:"absolute", left:-9999, width:1, height:1, opacity:0 }}
               autoComplete="off"
             />
@@ -1100,7 +1255,7 @@ function WhitelistForm() {
               <input
                 type="text" placeholder="0x..."
                 value={form.wallet}
-                onChange={e => { setForm(v=>({...v,wallet:e.target.value})); setErrors(v=>({...v,wallet:""})); }}
+                onChange={e => { setTouched(true); setForm(v=>({...v,wallet:e.target.value})); setErrors(v=>({...v,wallet:""})); }}
                 style={errors.wallet ? { borderColor:"#f07070" } : {}}
               />
               {errors.wallet && <span className="field-error">{errors.wallet}</span>}
@@ -1112,74 +1267,27 @@ function WhitelistForm() {
               <input
                 type="text" placeholder="@username"
                 value={form.xHandle}
-                onChange={e => { setForm(v=>({...v,xHandle:e.target.value})); setErrors(v=>({...v,xHandle:""})); }}
+                onChange={e => { setTouched(true); setForm(v=>({...v,xHandle:e.target.value})); setErrors(v=>({...v,xHandle:""})); }}
                 style={errors.xHandle ? { borderColor:"#f07070" } : {}}
               />
               {errors.xHandle && <span className="field-error">{errors.xHandle}</span>}
             </div>
 
-            {/* access type */}
-            <div className="field">
-              <label>Access Type</label>
-              <div style={{ display:"flex", gap:"1rem" }}>
-                {[
-                  { val:"priority", label:"Priority Access", note:"Guaranteed · 0.012 ETH" },
-                  { val:"general",  label:"General Access",  note:"FCFS · 0.015 ETH" },
-                ].map(opt => (
-                  <label key={opt.val} style={{
-                    flex:1, display:"flex", flexDirection:"column", gap:".3rem",
-                    padding:"1rem", borderRadius:10, cursor:"pointer",
-                    border:`1px solid ${form.accessType===opt.val ? "var(--border-lt)" : "var(--border)"}`,
-                    background: form.accessType===opt.val ? "rgba(201,168,76,.07)" : "rgba(255,255,255,.02)",
-                    transition:"all .2s",
-                  }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:".6rem" }}>
-                      <input
-                        type="radio" name="accessType" value={opt.val}
-                        checked={form.accessType===opt.val}
-                        onChange={() => setForm(v=>({...v,accessType:opt.val}))}
-                        style={{ accentColor:"var(--gold)" }}
-                      />
-                      <span style={{ fontSize:".83rem", color:"var(--text-full)" }}>{opt.label}</span>
-                    </div>
-                    <span style={{ fontSize:".72rem", color:"var(--text-dim)", paddingLeft:"1.5rem" }}>{opt.note}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* WL logic summary */}
-            <div style={{
-              display:"grid", gridTemplateColumns:"1fr 1fr", gap:".8rem",
-              padding:"1rem 1.2rem", borderRadius:10,
-              background:"rgba(255,255,255,.02)", border:"1px solid var(--border)",
-            }}>
-              {[
-                { tier:"Priority WL",     tag:"Guaranteed", price:"0.012 ETH", color:"var(--gold)" },
-                { tier:"General / Public",tag:"FCFS",        price:"0.015 ETH", color:"#6aadff" },
-              ].map((w,i) => (
-                <div key={i} style={{ textAlign:"center" }}>
-                  <div style={{ fontSize:".65rem", letterSpacing:".1em", textTransform:"uppercase", color:w.color, marginBottom:".25rem" }}>{w.tier}</div>
-                  <div style={{ fontSize:".7rem", color:"var(--text-dim)", marginBottom:".2rem" }}>{w.tag}</div>
-                  <div style={{ fontFamily:"'DM Mono',monospace", fontSize:".88rem", color:"var(--text-full)" }}>{w.price}</div>
-                </div>
-              ))}
-            </div>
-
             {/* captcha */}
             <div className="field">
-              <label>Verification — {cap.a} + {cap.b} = ?</label>
+              <label>Verification — {cap.label} = ?</label>
               <input
                 type="number" placeholder="Answer"
                 value={capInput}
-                onChange={e => { setCapInput(e.target.value); setErrors(v=>({...v,captcha:""})); }}
+                onChange={e => { setTouched(true); setCapInput(e.target.value); setErrors(v=>({...v,captcha:""})); }}
                 style={errors.captcha ? { borderColor:"#f07070" } : {}}
               />
               {errors.captcha && <span className="field-error">{errors.captcha}</span>}
             </div>
 
-            <button type="submit" className="btn-gold" style={{ padding:".9rem", borderRadius:8, justifyContent:"center", fontSize:".82rem", marginTop:".2rem" }}>
-              ❋ Submit Application
+            <button type="submit" className="btn-gold" disabled={submitting}
+              style={{ padding:".9rem", borderRadius:8, justifyContent:"center", fontSize:".82rem", marginTop:".2rem", opacity:submitting?.65:1 }}>
+              {submitting ? "Submitting…" : "❋ Submit Application"}
             </button>
           </form>
         </div>
@@ -1192,13 +1300,19 @@ function AdminPanel() {
   const [entries, setEntries] = useState([]);
   const [pw, setPw] = useState("");
   const [auth, setAuth] = useState(false);
-  const [wrongPw, setWrongPw] = useState(false);
-  // Set VITE_ADMIN_PASSWORD in your .env file to change the password.
-  // .env is excluded from git, so the plaintext never gets committed.
+  const [wrongPw,  setWrongPw]  = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [fetchErr, setFetchErr] = useState("");
   const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD ?? "elyze2026admin";
 
   useEffect(() => {
-    if (auth) setEntries(JSON.parse(localStorage.getItem("elyze_wl_v1") || "[]"));
+    if (!auth) return;
+    setLoading(true);
+    setFetchErr("");
+    sbFetch()
+      .then(data => setEntries(data))
+      .catch(() => setFetchErr("Could not load data from Supabase. Check your connection."))
+      .finally(() => setLoading(false));
   }, [auth]);
 
   const login = () => {
@@ -1207,22 +1321,15 @@ function AdminPanel() {
   };
 
   const exportCSV = () => {
-    const header = "wallet,xHandle,accessType,submitted\n";
+    const header = "wallet,x_handle,submitted_at\n";
     const rows = entries.map(e =>
-      `${e.wallet},${e.xHandle},${e.accessType},${new Date(e.ts).toISOString()}`
+      `${e.wallet},${e.x_handle},${e.submitted_at}`
     ).join("\n");
     const blob = new Blob([header + rows], { type:"text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = "elyze_whitelist.csv"; a.click();
     URL.revokeObjectURL(url);
-  };
-
-  const clearData = () => {
-    if (window.confirm("Clear all whitelist entries? This cannot be undone.")) {
-      localStorage.removeItem("elyze_wl_v1");
-      setEntries([]);
-    }
   };
 
   if (!auth) return (
@@ -1251,9 +1358,6 @@ function AdminPanel() {
     </section>
   );
 
-  const priority = entries.filter(e => e.accessType === "priority").length;
-  const general  = entries.filter(e => e.accessType === "general").length;
-
   return (
     <section style={{ minHeight:"100vh", padding:"4rem 2rem", background:"var(--navy)" }}>
       <div style={{ maxWidth:1040, margin:"0 auto" }}>
@@ -1263,61 +1367,53 @@ function AdminPanel() {
             Whitelist Dashboard
           </h2>
           <div style={{ display:"flex", gap:".75rem" }}>
-            <button className="btn-outline" onClick={exportCSV} style={{ padding:".6rem 1.4rem", borderRadius:7 }}>
+            <button className="btn-outline" onClick={exportCSV} disabled={loading || entries.length === 0}
+              style={{ padding:".6rem 1.4rem", borderRadius:7, opacity:(loading || entries.length===0)?.5:1 }}>
               Export CSV
             </button>
-            <button onClick={clearData} style={{
-              padding:".6rem 1.4rem", borderRadius:7, cursor:"pointer",
-              background:"rgba(240,112,112,.1)", border:"1px solid rgba(240,112,112,.3)",
-              color:"#f07070", fontSize:".8rem", fontFamily:"'DM Sans',sans-serif", letterSpacing:".08em",
-            }}>
-              Clear Data
+            <button className="btn-outline" onClick={() => { setLoading(true); sbFetch().then(setEntries).finally(() => setLoading(false)); }}
+              style={{ padding:".6rem 1.4rem", borderRadius:7 }}>
+              ↻ Refresh
             </button>
           </div>
         </div>
 
         {/* stats */}
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"1rem", marginBottom:"2rem" }}>
-          {[
-            { label:"Total Applications", val:entries.length, color:"var(--gold)" },
-            { label:"Priority Access",    val:priority,        color:"#e8c055" },
-            { label:"General Access",     val:general,         color:"#6aadff" },
-          ].map((s,i) => (
-            <div key={i} className="glass" style={{ borderRadius:12, padding:"1.4rem", textAlign:"center" }}>
-              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"2.2rem", color:s.color }}>{s.val}</div>
-              <div style={{ fontSize:".7rem", letterSpacing:".1em", textTransform:"uppercase", color:"var(--text-dim)", marginTop:".3rem" }}>{s.label}</div>
-            </div>
-          ))}
+        <div className="glass" style={{ borderRadius:12, padding:"1.4rem 2rem", marginBottom:"2rem", display:"inline-flex", alignItems:"center", gap:"1.5rem" }}>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"2.4rem", color:"var(--gold)" }}>
+            {loading ? "—" : entries.length}
+          </div>
+          <div style={{ fontSize:".72rem", letterSpacing:".12em", textTransform:"uppercase", color:"var(--text-dim)" }}>Total Applications</div>
         </div>
+
+        {fetchErr && (
+          <div style={{ padding:"1rem 1.4rem", borderRadius:10, background:"rgba(240,112,112,.1)", border:"1px solid rgba(240,112,112,.25)", color:"#f07070", fontSize:".83rem", marginBottom:"1.5rem" }}>
+            {fetchErr}
+          </div>
+        )}
 
         {/* table */}
         <div className="glass" style={{ borderRadius:14, overflow:"auto" }}>
           <table style={{ width:"100%", borderCollapse:"collapse", fontSize:".82rem" }}>
             <thead>
               <tr style={{ borderBottom:"1px solid var(--border)" }}>
-                {["#","Wallet","X Handle","Access Type","Submitted"].map(h => (
+                {["#","Wallet","X Handle","Submitted"].map(h => (
                   <th key={h} style={{ padding:".9rem 1.2rem", textAlign:"left", fontSize:".68rem", letterSpacing:".12em", textTransform:"uppercase", color:"var(--text-dim)", fontWeight:400 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {entries.length === 0 ? (
-                <tr><td colSpan={5} style={{ padding:"2.5rem", textAlign:"center", color:"var(--text-dim)" }}>No applications yet.</td></tr>
+              {loading ? (
+                <tr><td colSpan={4} style={{ padding:"2.5rem", textAlign:"center", color:"var(--text-dim)" }}>Loading…</td></tr>
+              ) : entries.length === 0 ? (
+                <tr><td colSpan={4} style={{ padding:"2.5rem", textAlign:"center", color:"var(--text-dim)" }}>No applications yet.</td></tr>
               ) : entries.map((e,i) => (
-                <tr key={i} style={{ borderBottom: i < entries.length-1 ? "1px solid var(--border)" : "none" }}>
+                <tr key={e.id || i} style={{ borderBottom: i < entries.length-1 ? "1px solid var(--border)" : "none" }}>
                   <td style={{ padding:".8rem 1.2rem", color:"var(--text-dim)" }}>{i+1}</td>
                   <td style={{ padding:".8rem 1.2rem", fontFamily:"'DM Mono',monospace", fontSize:".74rem" }}>{e.wallet}</td>
-                  <td style={{ padding:".8rem 1.2rem" }}>{e.xHandle}</td>
-                  <td style={{ padding:".8rem 1.2rem" }}>
-                    <span style={{
-                      fontSize:".65rem", letterSpacing:".1em", textTransform:"uppercase",
-                      padding:".2rem .65rem", borderRadius:99,
-                      background: e.accessType==="priority" ? "rgba(220,160,20,.18)" : "rgba(60,130,220,.18)",
-                      color: e.accessType==="priority" ? "#e8c055" : "#6aadff",
-                    }}>{e.accessType}</span>
-                  </td>
+                  <td style={{ padding:".8rem 1.2rem" }}>{e.x_handle}</td>
                   <td style={{ padding:".8rem 1.2rem", color:"var(--text-dim)", fontSize:".74rem" }}>
-                    {new Date(e.ts).toLocaleString()}
+                    {new Date(e.submitted_at).toLocaleString()}
                   </td>
                 </tr>
               ))}
@@ -1356,7 +1452,7 @@ function Footer({ onWaitlist }) {
       background:"var(--navy)",
     }}>
       <div style={{ maxWidth:1060, margin:"0 auto" }}>
-        <div style={{ display:"grid", gridTemplateColumns:"1.5fr 1fr 1fr", gap:"3rem", marginBottom:"3rem" }}>
+        <div className="footer-grid" style={{ display:"grid", gridTemplateColumns:"1.5fr 1fr 1fr", gap:"3rem", marginBottom:"3rem" }}>
           {/* brand */}
           <div>
             <div style={{ display:"flex", alignItems:"center", gap:".6rem", marginBottom:"1rem" }}>
