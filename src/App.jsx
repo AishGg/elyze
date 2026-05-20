@@ -543,7 +543,7 @@ function Hero({ onWaitlist }) {
     <section id="hero" className="hero-section" style={{
       minHeight:"100vh",
       display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-      padding:"9rem 2rem 5rem",
+      padding:"5rem 2rem 4rem",
       position:"relative",
     }}>
       {/* ambient orbs */}
@@ -638,25 +638,25 @@ function Hero({ onWaitlist }) {
         </div>
       </div>
 
-      {/* countdown */}
-      <div style={{ marginBottom:"1rem", fontSize:".7rem", letterSpacing:".18em", textTransform:"uppercase", color:"var(--text-dim)" }}>
-        Mint Opens · 3 June 2026 · 2PM UTC
-      </div>
-      <div className="cd-wrap" style={{ display:"flex", gap:".75rem", marginBottom:"3rem" }}>
-        <CountdownBlock label="Days"    value={cd.d} />
-        <CountdownBlock label="Hours"   value={cd.h} />
-        <CountdownBlock label="Minutes" value={cd.m} />
-        <CountdownBlock label="Seconds" value={cd.s} />
-      </div>
-
       {/* CTA */}
-      <div className="hero-btns" style={{ display:"flex", gap:"1rem", flexWrap:"wrap", justifyContent:"center" }}>
+      <div className="hero-btns" style={{ display:"flex", gap:"1rem", flexWrap:"wrap", justifyContent:"center", marginBottom:"2.5rem" }}>
         <button className="btn-gold" onClick={onWaitlist} style={{ padding:".85rem 2.2rem", borderRadius:8, fontSize:".82rem" }}>
           ❋ Apply for Access
         </button>
         <a href="#genesis" className="btn-outline" style={{ padding:".85rem 2.2rem", borderRadius:8, fontSize:".82rem" }}>
           Explore Genesis
         </a>
+      </div>
+
+      {/* countdown */}
+      <div style={{ marginBottom:"1rem", fontSize:".7rem", letterSpacing:".18em", textTransform:"uppercase", color:"var(--text-dim)" }}>
+        Mint Opens · 3 June 2026 · 2PM UTC
+      </div>
+      <div className="cd-wrap" style={{ display:"flex", gap:".75rem" }}>
+        <CountdownBlock label="Days"    value={cd.d} />
+        <CountdownBlock label="Hours"   value={cd.h} />
+        <CountdownBlock label="Minutes" value={cd.m} />
+        <CountdownBlock label="Seconds" value={cd.s} />
       </div>
     </section>
   );
@@ -798,8 +798,8 @@ function GenesisPass() {
                 padding:"1rem 1.6rem",
                 borderBottom: i < details.length-1 ? "1px solid var(--border)" : "none",
               }}>
-                <span style={{ fontSize:".78rem", letterSpacing:".1em", textTransform:"uppercase", color:"var(--text-dim)" }}>{k}</span>
-                <span style={{ fontSize:".9rem", fontFamily:"'DM Mono',monospace", color:"var(--text-full)" }}>{v}</span>
+                <span style={{ fontSize:".72rem", letterSpacing:".14em", textTransform:"uppercase", color:"var(--text-dim)" }}>{k}</span>
+                <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"1.05rem", letterSpacing:".04em", color:"var(--text-full)" }}>{v}</span>
               </div>
             ))}
           </div>
@@ -1111,7 +1111,7 @@ function WhitelistForm() {
   const [submitting,setSubmitting]= useState(false);
 
   const tasks = [
-    { label:"Follow Elyze Finance on X",                href:"https://x.com/Elyzeoneth",     optional:false },
+    { label:"Follow Elyze Finance on X",                href:"https://twitter.com/intent/follow?screen_name=Elyzeoneth&reference=zursion",     optional:false },
     { label:"Like + Retweet + Comment on pinned post",  href:"https://x.com/Elyzeoneth",     optional:false },
     { label:"Join Telegram",                            href:"https://t.me/elyzefinance",     optional:true  },
   ];
