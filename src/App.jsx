@@ -355,7 +355,7 @@ const TICKER_ITEMS = [
   "ETHEREUM MAINNET",
   "ERC-721",
   "AI-POWERED INVESTING",
-  "MINT: 3 JUNE 2026",
+  "MINT: 10 JUNE 2026",
   "WL: 0.012 ETH",
   "PUBLIC: 0.015 ETH",
   "$ELZ TOKEN",
@@ -526,7 +526,7 @@ function CountdownBlock({ label, value }) {
 }
 
 function Hero({ onWaitlist }) {
-  const cd = useCountdown("2026-06-03T14:00:00Z");
+  const cd = useCountdown("2026-06-10T14:00:00Z");
   const rotatingLines = [
     "Structured Participation Starts Here.",
     "Long-Term Access Begins on Ethereum.",
@@ -650,7 +650,7 @@ function Hero({ onWaitlist }) {
 
       {/* countdown */}
       <div style={{ marginBottom:"1rem", fontSize:".7rem", letterSpacing:".18em", textTransform:"uppercase", color:"var(--text-dim)" }}>
-        Mint Opens · 3 June 2026 · 2PM UTC
+        Mint Opens · 10 June 2026 · 2PM UTC
       </div>
       <div className="cd-wrap" style={{ display:"flex", gap:".75rem" }}>
         <CountdownBlock label="Days"    value={cd.d} />
@@ -773,7 +773,7 @@ function GenesisPass() {
     ["Mint Type",    "Random Mint · Delayed Reveal"],
     ["WL Price",     "0.012 ETH"],
     ["Public Price", "0.015 ETH"],
-    ["Mint Date",    "3 June 2026 · 2PM UTC"],
+    ["Mint Date",    "10 June 2026 · 2PM UTC"],
   ];
   return (
     <section id="genesis" style={{ padding:"7rem 2rem", background:"linear-gradient(180deg,var(--navy) 0%,var(--navy-mid) 50%,var(--navy) 100%)" }}>
