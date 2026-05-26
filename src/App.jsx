@@ -764,7 +764,7 @@ function About() {
 }
 
 function GenesisPass() {
-  const cd = useCountdown("2026-06-03T14:00:00Z");
+  const cd = useCountdown("2026-06-10T14:00:00Z");
   const details = [
     ["Collection",   "Elyze Finance: Genesis Pass"],
     ["Standard",     "ERC-721"],
